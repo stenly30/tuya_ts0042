@@ -1,20 +1,14 @@
 blueprint:
-  name: Zigbee2MQTT - Tuya 2-Button Switch (MQTT Subscribe Any - Filters Multiple Devices) - rdeangel
+  name: Zigbee2MQTT - Tuya 2-Button Switch (MQTT Subscribe and Filter)
   description: >
-    Blueprint Version: 11-01-25
-
-    Blueprint Name: Zigbee2MQTT - Tuya 2-Button Switch (MQTT Subscribe Any - Filters Multiple Devices) - rdeangel
-
-    This blueprint subscribes to all MQTT messages on the topic `zigbee2mqtt/+/action` and then filters the correct device based on your selection.
-    It allows one blueprint to be used for multiple 2-button controllers. The blueprint evaluates whether the received MQTT message belongs
-    to the selected device(s) and if so, executes the corresponding action based on the payload (e.g. `1_single`, `2_double`, etc.).
-
-    If you only need one device, simply select one. If you have multiple identical controllers, you can select more than one.
+    This blueprint subscribes to all MQTT messages on the topic `zigbee2mqtt/+/action` and filters them based on the selected device(s).
+    When a button action (e.g. `1_single`, `1_double`, `1_hold`, `2_single`, `2_double`, `2_hold`) is received from a Tuya TS0042 2‑button device,
+    it triggers the corresponding automation action. You can select one or more devices.
   domain: automation
   input:
     mode:
       name: Automation Mode
-      description: https://www.home-assistant.io/docs/automation/modes/
+      description: See https://www.home-assistant.io/docs/automation/modes/
       default: parallel
       selector:
         select:
@@ -29,57 +23,53 @@ blueprint:
           sort: false
 
     zigbee_device:
-      name: Zigbee Devices - Tuya TS0042 (and alike)
-      description: Select one or more devices corresponding to the 2-button controller (TS0042).
+      name: Zigbee Device - Tuya TS0042
+      description: Select one or more devices corresponding to the 2‑button controller.
       selector:
         device:
-          integration:
-            domain: mqtt
           multiple: true
 
     button_one_short_press:
-      name: Single Press - Button 1
+      name: Button 1 Single Press
       description: Action to run on Button 1 (short press)
       default: []
       selector:
         action: {}
 
     button_one_double_press:
-      name: Double Press - Button 1
+      name: Button 1 Double Press
       description: Action to run on Button 1 (double press)
       default: []
       selector:
         action: {}
 
     button_one_long_press:
-      name: Long Press - Button 1
+      name: Button 1 Long Press
       description: Action to run on Button 1 (long press)
       default: []
       selector:
         action: {}
 
     button_two_short_press:
-      name: Single Press - Button 2
+      name: Button 2 Single Press
       description: Action to run on Button 2 (short press)
       default: []
       selector:
         action: {}
 
     button_two_double_press:
-      name: Double Press - Button 2
+      name: Button 2 Double Press
       description: Action to run on Button 2 (double press)
       default: []
       selector:
         action: {}
 
     button_two_long_press:
-      name: Long Press - Button 2
+      name: Button 2 Long Press
       description: Action to run on Button 2 (long press)
       default: []
       selector:
         action: {}
-
-  source_url: https://gist.github.com/rdeangel/bf0019c7d63023cd4decbba44044bc64
 
 mode: !input mode
 max_exceeded: silent
@@ -91,8 +81,8 @@ trigger:
 variables:
   device_names: !input zigbee_device
   expected_topics: >
-    {% for device_name in device_names %}
-      zigbee2mqtt/{{ device_attr(device_name, 'name') }}/action |
+    {% for device in device_names %}
+      zigbee2mqtt/{{ device_attr(device, 'name') }}/action |
     {% endfor %}null
 
 condition:
@@ -106,23 +96,18 @@ action:
       - conditions:
           - "{{ command == '1_single' }}"
         sequence: !input button_one_short_press
-
       - conditions:
           - "{{ command == '1_double' }}"
         sequence: !input button_one_double_press
-
       - conditions:
           - "{{ command == '1_hold' }}"
         sequence: !input button_one_long_press
-
       - conditions:
           - "{{ command == '2_single' }}"
         sequence: !input button_two_short_press
-
       - conditions:
           - "{{ command == '2_double' }}"
         sequence: !input button_two_double_press
-
       - conditions:
           - "{{ command == '2_hold' }}"
         sequence: !input button_two_long_press
