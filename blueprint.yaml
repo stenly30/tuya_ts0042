@@ -27,8 +27,7 @@ blueprint:
       description: Select one or more devices corresponding to the 2‑button controller.
       selector:
         device:
-          integration:
-            domain: mqtt
+          integration: "mqtt"
           multiple: true
 
     button_one_short_press:
