@@ -1,0 +1,130 @@
+blueprint:
+  name: Zigbee2MQTT - Tuya 2-Button Switch (MQTT Subscribe Any - Filters Multiple Devices) - rdeangel
+  description: >
+    Blueprint Version: 11-01-25
+    
+    **Blueprint Name**: Zigbee2MQTT - Tuya 2-Button Switch (MQTT Subscribe Any - Filters Multiple Devices) - rdeangel
+    
+    Tento blueprint odebírá všechny akce z tématu `zigbee2mqtt/+/action` a poté filtruje správné zařízení/zařízení podle výběru.
+    
+    Umožňuje tedy mít jeden blueprint pro více 2-tlačítkových ovladačů. V podstatě se vyhodnotí, zda přijatá MQTT zpráva patří
+    vybraným zařízením a pokud ano, podle obsahu `payload` (např. `1_single`, `2_double`, ...) se spustí příslušná akce.
+    
+    Pokud potřebujete jen jedno zařízení, stačí vybrat pouze jedno. Pokud máte více stejných ovladačů, lze vybrat i více.
+
+  domain: automation
+
+  input:
+    mode:
+      name: Automation Modes
+      description: https://www.home-assistant.io/docs/automation/modes/
+      default: parallel
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - single
+            - restart
+            - queued
+            - parallel
+          multiple: false
+          custom_value: false
+          sort: false
+
+    zigbee_device:
+      name: Zigbee Devices - Tuya TS0042 (and alike)
+      description: Vyberte jedno nebo více zařízení, která odpovídají dvoutlačítkovému ovladači (TS0042).
+      selector:
+        device:
+          integration: mqtt
+          multiple: true
+
+    button_one_short_press:
+      name: Single Press - Button 1
+      description: Akce při stisku tlačítka 1 (krátký stisk)
+      default: []
+      selector:
+        action: {}
+
+    button_one_double_press:
+      name: Double Press - Button 1
+      description: Akce při dvojitém stisku tlačítka 1
+      default: []
+      selector:
+        action: {}
+
+    button_one_long_press:
+      name: Long Press - Button 1
+      description: Akce při dlouhém stisku tlačítka 1
+      default: []
+      selector:
+        action: {}
+
+    button_two_short_press:
+      name: Single Press - Button 2
+      description: Akce při stisku tlačítka 2 (krátký stisk)
+      default: []
+      selector:
+        action: {}
+
+    button_two_double_press:
+      name: Double Press - Button 2
+      description: Akce při dvojitém stisku tlačítka 2
+      default: []
+      selector:
+        action: {}
+
+    button_two_long_press:
+      name: Long Press - Button 2
+      description: Akce při dlouhém stisku tlačítka 2
+      default: []
+      selector:
+        action: {}
+
+  source_url: https://gist.github.com/rdeangel/bf0019c7d63023cd4decbba44044bc64
+
+mode: !input mode
+max_exceeded: silent
+
+trigger:
+  - platform: mqtt
+    topic: zigbee2mqtt/+/action
+
+variables:
+  device_names: !input zigbee_device
+  expected_topics: >
+    {% for device_name in device_names %}
+      zigbee2mqtt/{{ device_attr(device_name, 'name') }}/action |
+    {% endfor %}null
+
+condition:
+  - condition: template
+    value_template: "{{ trigger.topic in expected_topics }}"
+
+action:
+  - variables:
+      command: "{{ trigger.payload }}"
+  - choose:
+      - conditions:
+          - "{{ command == '1_single' }}"
+        sequence: !input button_one_short_press
+
+      - conditions:
+          - "{{ command == '1_double' }}"
+        sequence: !input button_one_double_press
+
+      - conditions:
+          - "{{ command == '1_hold' }}"
+        sequence: !input button_one_long_press
+
+      - conditions:
+          - "{{ command == '2_single' }}"
+        sequence: !input button_two_short_press
+
+      - conditions:
+          - "{{ command == '2_double' }}"
+        sequence: !input button_two_double_press
+
+      - conditions:
+          - "{{ command == '2_hold' }}"
+        sequence: !input button_two_long_press
