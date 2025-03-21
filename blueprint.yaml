@@ -1,0 +1,115 @@
+blueprint:
+  name: Zigbee2MQTT - Tuya 2-Button Switch (MQTT Subscribe and Filter)
+  description: >
+    This blueprint subscribes to all MQTT messages on the topic `zigbee2mqtt/+/action` and filters them based on the selected device(s).
+    When a button action (e.g. `1_single`, `1_double`, `1_hold`, `2_single`, `2_double`, `2_hold`) is received from a Tuya TS0042 2‑button device,
+    it triggers the corresponding automation action. You can select one or more devices.
+  domain: automation
+  input:
+    mode:
+      name: Automation Mode
+      description: See https://www.home-assistant.io/docs/automation/modes/
+      default: parallel
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - single
+            - restart
+            - queued
+            - parallel
+          multiple: false
+          custom_value: false
+          sort: false
+
+    zigbee_device:
+      name: Zigbee Device - Tuya TS0042
+      description: Select one or more devices corresponding to the 2‑button controller.
+      selector:
+        device:
+          integration:
+            domain: mqtt
+          multiple: true
+
+    button_one_short_press:
+      name: Button 1 Single Press
+      description: Action to run on Button 1 (short press)
+      default: []
+      selector:
+        action: {}
+
+    button_one_double_press:
+      name: Button 1 Double Press
+      description: Action to run on Button 1 (double press)
+      default: []
+      selector:
+        action: {}
+
+    button_one_long_press:
+      name: Button 1 Long Press
+      description: Action to run on Button 1 (long press)
+      default: []
+      selector:
+        action: {}
+
+    button_two_short_press:
+      name: Button 2 Single Press
+      description: Action to run on Button 2 (short press)
+      default: []
+      selector:
+        action: {}
+
+    button_two_double_press:
+      name: Button 2 Double Press
+      description: Action to run on Button 2 (double press)
+      default: []
+      selector:
+        action: {}
+
+    button_two_long_press:
+      name: Button 2 Long Press
+      description: Action to run on Button 2 (long press)
+      default: []
+      selector:
+        action: {}
+
+mode: !input mode
+max_exceeded: silent
+
+trigger:
+  - platform: mqtt
+    topic: zigbee2mqtt/+/action
+
+variables:
+  device_names: !input zigbee_device
+  expected_topics: >
+    {% for device in device_names %}
+      zigbee2mqtt/{{ device_attr(device, 'name') }}/action |
+    {% endfor %}null
+
+condition:
+  - condition: template
+    value_template: "{{ trigger.topic in expected_topics }}"
+
+action:
+  - variables:
+      command: "{{ trigger.payload }}"
+  - choose:
+      - conditions:
+          - "{{ command == '1_single' }}"
+        sequence: !input button_one_short_press
+      - conditions:
+          - "{{ command == '1_double' }}"
+        sequence: !input button_one_double_press
+      - conditions:
+          - "{{ command == '1_hold' }}"
+        sequence: !input button_one_long_press
+      - conditions:
+          - "{{ command == '2_single' }}"
+        sequence: !input button_two_short_press
+      - conditions:
+          - "{{ command == '2_double' }}"
+        sequence: !input button_two_double_press
+      - conditions:
+          - "{{ command == '2_hold' }}"
+        sequence: !input button_two_long_press
